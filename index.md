@@ -144,6 +144,7 @@ diff -ruN orig/cmake-3.22.2-linux-aarch64/share/cmake-3.22/Modules/FindOpenMP.cm
 ```
 
     It kind of works: the `-fopenmp` option is passed to the linker, and `fapp` is a happy panda
+
 ```
 /opt/FJSVxtclanga/tcsds-1.2.34/bin/FCC -fopenmp CMakeFiles/omp.dir/omp.cpp.o -o omp  /opt/FJSVxtclanga/tcsds-1.2.34/lib64/libfjomphk.so /opt/FJSVxtclanga/tcsds-1.2.34/lib64/libfjomp.so /opt/FJSVxtclanga/tcsds-1.2.34/lib64/libfj90i.so /opt/FJSVxtclanga/tcsds-1.2.34/lib64/libfj90fmt_sve.a /opt/FJSVxtclanga/tcsds-1.2.34/lib64/libfj90f.so -lfjsrcinfo /opt/FJSVxtclanga/tcsds-1.2.34/lib64/libfjcrt.so /opt/FJSVxtclanga/tcsds-1.2.34/lib64/libfjompcrt.so /usr/lib/gcc/aarch64-redhat-linux/8/libatomic.so
 ```
@@ -192,14 +193,18 @@ make[2]: *** [CMakeFiles/omp.dir/build.make:108: omp] Error 1
 make[1]: *** [CMakeFiles/Makefile2:83: CMakeFiles/omp.dir/all] Error 2
 make: *** [Makefile:91: all] Error 2
 ```
+
    and that is the root cause (from `CMakeCache.txt`)
+
 ```
 OpenMP_CXX_LIB_NAMES:STRING=fjomp;fjomphk;fjomp;fj90i;fj90fmt_sve;fj90f;fjsrcinfo;fjcrt;fjompcrt;atomic
 
 ```
+
    yep, `fjomp.o` and `libfjomp.so` are both referred as `fjomp`.
    That leads to `libfjomp.so` not being passed to the linker, and hence the linker error.
    So let's fix that - and that's why it is ugly
+
 ```
 diff -ruN orig/cmake-3.22.2-linux-aarch64/share/cmake-3.22/Modules/FindOpenMP.cmake cmake-3.22.2-linux-aarch64/share/cmake-3.22/Modules/FindOpenMP.cmake
 --- orig/cmake-3.22.2-linux-aarch64/share/cmake-3.22/Modules/FindOpenMP.cmake   2022-01-25 22:56:11.000000000 +0900
