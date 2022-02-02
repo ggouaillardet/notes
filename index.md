@@ -126,7 +126,7 @@ Now let's try to fix this:
  1. the bad:
     let's pass `-fopenmp` to the linker
 
-```
+```diff
 diff -ruN orig/cmake-3.22.2-linux-aarch64/share/cmake-3.22/Modules/FindOpenMP.cmake cmake-3.22.2-linux-aarch64/share/cmake-3.22/Modules/FindOpenMP.cmake
 --- orig/cmake-3.22.2-linux-aarch64/share/cmake-3.22/Modules/FindOpenMP.cmake   2022-01-25 22:56:11.000000000 +0900
 +++ cmake-3.22.2-linux-aarch64/share/cmake-3.22/Modules/FindOpenMP.cmake        2022-02-01 11:39:02.000000000 +0900
@@ -142,17 +142,16 @@ diff -ruN orig/cmake-3.22.2-linux-aarch64/share/cmake-3.22/Modules/FindOpenMP.cm
          unset(_OpenMP_${LANG}_OPTIONS)
        endif()
 ```
-
-    It kind of works: the `-fopenmp` option is passed to the linker, and `fapp` is a happy panda
+It kind of works: the `-fopenmp` option is passed to the linker, and `fapp` is a happy panda
 
 ```
 /opt/FJSVxtclanga/tcsds-1.2.34/bin/FCC -fopenmp CMakeFiles/omp.dir/omp.cpp.o -o omp  /opt/FJSVxtclanga/tcsds-1.2.34/lib64/libfjomphk.so /opt/FJSVxtclanga/tcsds-1.2.34/lib64/libfjomp.so /opt/FJSVxtclanga/tcsds-1.2.34/lib64/libfj90i.so /opt/FJSVxtclanga/tcsds-1.2.34/lib64/libfj90fmt_sve.a /opt/FJSVxtclanga/tcsds-1.2.34/lib64/libfj90f.so -lfjsrcinfo /opt/FJSVxtclanga/tcsds-1.2.34/lib64/libfjcrt.so /opt/FJSVxtclanga/tcsds-1.2.34/lib64/libfjompcrt.so /usr/lib/gcc/aarch64-redhat-linux/8/libatomic.so
 ```
-    But it is also (kind of) bad since the `-fopenmp` option is redundant with explicitly linking OpenMP libraries and dependencies.
+But it is also (kind of) bad since the `-fopenmp` option is redundant with explicitly linking OpenMP libraries and dependencies.
 
  2. the ugly
    let's (try to) do it right and have CMake link with `fjomp.o`!
-```
+```diff
 diff -ruN orig/cmake-3.22.2-linux-aarch64/share/cmake-3.22/Modules/Compiler/FujitsuClang-C.cmake cmake-3.22.2-linux-aarch64/share/cmake-3.22/Modules/Compiler/FujitsuClang-C.cmake
 --- orig/cmake-3.22.2-linux-aarch64/share/cmake-3.22/Modules/Compiler/FujitsuClang-C.cmake      2022-01-25 22:56:11.000000000 +0900
 +++ cmake-3.22.2-linux-aarch64/share/cmake-3.22/Modules/Compiler/FujitsuClang-C.cmake   2022-02-01 11:53:39.000000000 +0900
