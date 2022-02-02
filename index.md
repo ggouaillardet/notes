@@ -123,7 +123,7 @@ but that did not seem to influence the outcome of `fapp`.
 
 Now let's try to fix this:
 
- 1. the bad:
+1. the bad:
     let's pass `-fopenmp` to the linker
 
 ```diff
@@ -151,7 +151,7 @@ It kind of works: the `-fopenmp` option is passed to the linker, and `fapp` is a
 
 But it is also (kind of) bad since the `-fopenmp` option is redundant with explicitly linking OpenMP libraries and dependencies.
 
- 2. the ugly
+2. the ugly
    let's (try to) do it right and have CMake link with `fjomp.o`!
 ```diff
 diff -ruN orig/cmake-3.22.2-linux-aarch64/share/cmake-3.22/Modules/Compiler/FujitsuClang-C.cmake cmake-3.22.2-linux-aarch64/share/cmake-3.22/Modules/Compiler/FujitsuClang-C.cmake
@@ -227,4 +227,4 @@ diff -ruN orig/cmake-3.22.2-linux-aarch64/share/cmake-3.22/Modules/FindOpenMP.cm
 /opt/FJSVxtclanga/tcsds-1.2.34/bin/FCC CMakeFiles/omp.dir/omp.cpp.o -o omp  /opt/FJSVxtclanga/tcsds-1.2.34/lib64/fjomp.o /opt/FJSVxtclanga/tcsds-1.2.34/lib64/libfjomphk.so /opt/FJSVxtclanga/tcsds-1.2.34/lib64/libfjomp.so /opt/FJSVxtclanga/tcsds-1.2.34/lib64/libfj90i.so /opt/FJSVxtclanga/tcsds-1.2.34/lib64/libfj90fmt_sve.a /opt/FJSVxtclanga/tcsds-1.2.34/lib64/libfj90f.so -lfjsrcinfo /opt/FJSVxtclanga/tcsds-1.2.34/lib64/libfjcrt.so /opt/FJSVxtclanga/tcsds-1.2.34/lib64/libfjompcrt.so /usr/lib/gcc/aarch64-redhat-linux/8/libatomic.so 
 ```
  
-   3. The good: well I cannot do that alone ... My best preference is to get rid of the ugly patch, which means either `fjomp.o` or `libfjomp.so` should be renammed into something that does not cause any conflict with CMake way of handling things.
+3. The good: well I cannot do that alone ... My best preference is to get rid of the ugly patch, which means either `fjomp.o` or `libfjomp.so` should be renammed into something that does not cause any conflict with CMake way of handling things.
