@@ -1,4 +1,6 @@
-FujitsuClang, cmake and fapp
+# FujitsuClang, cmake and fapp
+
+## Problem statement
 
 let's have a look at the following trivial OpenMP C++ program
 
@@ -82,7 +84,10 @@ fapp: internal error : Tools environment unauthorized thread <115292150031187968
 fapp: internal error : Tools environment unauthorized thread <1152921500311879680> access
 ```
 
-`fapp` fails with a cryptic error message:
+`fapp` failed with a cryptic error message!
+
+
+## Analysis
 
 Let's see how the binary was linked
 
@@ -123,7 +128,7 @@ but that did not seem to influence the outcome of `fapp`.
 
 Now let's try to fix this:
 
-1. the bad:
+### The bad fix:
     let's pass `-fopenmp` to the linker
 
 ```diff
@@ -151,7 +156,7 @@ It kind of works: the `-fopenmp` option is passed to the linker, and `fapp` is a
 
 But it is also (kind of) bad since the `-fopenmp` option is redundant with explicitly linking OpenMP libraries and dependencies.
 
-2. the ugly
+### The ugly fix
    let's (try to) do it right and have CMake link with `fjomp.o`!
 ```diff
 diff -ruN orig/cmake-3.22.2-linux-aarch64/share/cmake-3.22/Modules/Compiler/FujitsuClang-C.cmake cmake-3.22.2-linux-aarch64/share/cmake-3.22/Modules/Compiler/FujitsuClang-C.cmake
@@ -201,12 +206,11 @@ make: *** [Makefile:91: all] Error 2
 OpenMP_CXX_LIB_NAMES:STRING=fjomp;fjomphk;fjomp;fj90i;fj90fmt_sve;fj90f;fjsrcinfo;fjcrt;fjompcrt;atomic
 
 ```
+yep, `fjomp.o` and `libfjomp.so` are both referred as `fjomp`.
+That leads to `libfjomp.so` not being passed to the linker, and hence the linker error.
+This is ugly, but let's attempt to fix it anyway
 
-   yep, `fjomp.o` and `libfjomp.so` are both referred as `fjomp`.
-   That leads to `libfjomp.so` not being passed to the linker, and hence the linker error.
-   So let's fix that - and that's why it is ugly
-
-```
+```diff
 diff -ruN orig/cmake-3.22.2-linux-aarch64/share/cmake-3.22/Modules/FindOpenMP.cmake cmake-3.22.2-linux-aarch64/share/cmake-3.22/Modules/FindOpenMP.cmake
 --- orig/cmake-3.22.2-linux-aarch64/share/cmake-3.22/Modules/FindOpenMP.cmake   2022-01-25 22:56:11.000000000 +0900
 +++ cmake-3.22.2-linux-aarch64/share/cmake-3.22/Modules/FindOpenMP.cmake        2022-02-01 12:02:38.000000000 +0900
@@ -221,10 +225,19 @@ diff -ruN orig/cmake-3.22.2-linux-aarch64/share/cmake-3.22/Modules/FindOpenMP.cm
            string(REGEX REPLACE "([][+.*?()^$])" "\\\\\\1" _OPENMP_IMPLICIT_LIB_PATH_ESC "${_OPENMP_IMPLICIT_LIB}")
            if(NOT ( "${_OPENMP_IMPLICIT_LIB}" IN_LIST CMAKE_${LANG}_IMPLICIT_LINK_LIBRARIES
 ```
-
-   that did the trick, fwiw, here is the link command line:
+that did the trick, fwiw, here is the link command line:
 ```
 /opt/FJSVxtclanga/tcsds-1.2.34/bin/FCC CMakeFiles/omp.dir/omp.cpp.o -o omp  /opt/FJSVxtclanga/tcsds-1.2.34/lib64/fjomp.o /opt/FJSVxtclanga/tcsds-1.2.34/lib64/libfjomphk.so /opt/FJSVxtclanga/tcsds-1.2.34/lib64/libfjomp.so /opt/FJSVxtclanga/tcsds-1.2.34/lib64/libfj90i.so /opt/FJSVxtclanga/tcsds-1.2.34/lib64/libfj90fmt_sve.a /opt/FJSVxtclanga/tcsds-1.2.34/lib64/libfj90f.so -lfjsrcinfo /opt/FJSVxtclanga/tcsds-1.2.34/lib64/libfjcrt.so /opt/FJSVxtclanga/tcsds-1.2.34/lib64/libfjompcrt.so /usr/lib/gcc/aarch64-redhat-linux/8/libatomic.so 
 ```
  
-3. The good: well I cannot do that alone ... My best preference is to get rid of the ugly patch, which means either `fjomp.o` or `libfjomp.so` should be renammed into something that does not cause any conflict with CMake way of handling things.
+### The good fix
+well I cannot do that alone ... My best preference is to get rid of the ugly patch, which means either `fjomp.o` or `libfjomp.so` should be renammed into something that does not cause any conflict with CMake way of handling things.
+
+
+## Conclusion
+- `fapp` does not work out of the box for `CMake` built OpenMP projects
+- The root cause is some FJ object files are not passed to the linker
+- A clean fix involves
+ 1. fix on the CMake side (to allow FJ object files to be passed to the linker)
+ 2. FJ should rename `fjomp.o` not to confuse `CMake` (that internally treats it as `libfjomp.so`, which causes some other issue)
+- Open question: should `fjcrt0.o` and `fjlang08.o` be also passed to the linker when building OpenMP projects?
